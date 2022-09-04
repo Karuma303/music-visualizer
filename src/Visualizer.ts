@@ -18,6 +18,9 @@ export class Visualizer {
 
         // https://webaudio.github.io/web-audio-api/#AnalyserNode
 
+        // Example with float:
+        // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
+
         // const node = new AnalyserNode(context, {
         //     fftSize: 64,
         // })
@@ -55,6 +58,7 @@ export class Visualizer {
         // Hence, a bin is a spectrum sample, and defines the frequency resolution of the window.
 
         this.dataArray = new Uint8Array(this.bufferLength); // Converts to 8-bit unsigned integer array
+
         // At this point dataArray is an array with length of bufferLength but no values
         console.log('DATA-ARRAY: ', this.dataArray) // Check out this array of frequency values!
 
