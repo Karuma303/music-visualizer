@@ -14,6 +14,8 @@ export enum DisplayType {
     Time
 }
 
+// FftSize represents the window size in samples that is used when performing the FFT
+// Must be a power of 2 between 2^5 and 2^15,
 export enum FftSize {
     Size32 = 32,
     Size64 = 64,
@@ -28,14 +30,14 @@ export enum FftSize {
     Size32768 = 32768,
 }
 
+/**
+ *  Doc for analyser node:  https://webaudio.github.io/web-audio-api/#AnalyserNode
+ */
 export class Visualizer {
 
     private readonly ctx: CanvasRenderingContext2D
-    // private readonly WIDTH: number
-    // private readonly HEIGHT: number
-    private readonly analyser: AnalyserNode
+    private analyser: AnalyserNode | null = null
     private dataArray: Uint8Array | null = null
-    // private readonly barWidth: number
     private bufferLength: number = 0
     private animationFrameHandle = 0
 
@@ -46,40 +48,36 @@ export class Visualizer {
     private displayType = DisplayType.Time
     private resolution: FftSize = FftSize.Size256
     private canvasController: CanvasController
+    private audio: HTMLAudioElement;
 
     constructor(audio: HTMLAudioElement, container: HTMLElement, options?: VisualizerOptions) {
+        this.audio = audio
         this.canvasController = new CanvasController(container)
+        this.ctx = this.canvasController.canvas.getContext("2d") as CanvasRenderingContext2D;
+
+        if (options)
+            this.applyOptions(options)
 
         this.attachAudioListener(audio)
-        const ctx = this.canvasController.canvas.getContext("2d") as CanvasRenderingContext2D;
+    }
 
+    public init = () => {
         // (Interface) Audio-processing graph
         const context = new AudioContext();
 
         // Give the audio context an audio source, to which can then be played and manipulated
-        const src = context.createMediaElementSource(audio);
+        const src = context.createMediaElementSource(this.audio);
 
-        // https://webaudio.github.io/web-audio-api/#AnalyserNode
-
-        // Example with float:
-        // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
-
-        // fftSize represents the window size in samples that is used when performing the FFT
-        // Must be a power of 2 between 2^5 and 2^15,
-        // so one of: 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, and 32768.
         this.analyser = new AnalyserNode(context, {
             fftSize: 512, // default: 2048 [Best for freq: 128, Best for time: 512]
             minDecibels: -90, // default: -100
             maxDecibels: -10, // default: -30
             smoothingTimeConstant: .8 // default: .8 (0 -> 1)
         })
+        // TODO: remove
+        this.bufferLength = this.analyser.frequencyBinCount
 
-        if (options) {
-            this.applyOptions(options)
-        }
         if (!this.dataArray) this.applyResolution(FftSize.Size256)
-
-        // this.analyser = context.createAnalyser(); // Create an analyser for the audio context
 
         // Connects the audio context source to the analyser
         src.connect(this.analyser);
@@ -87,14 +85,13 @@ export class Visualizer {
         // End destination of an audio graph in a given context
         // Sends sound to the speakers or headphones
         this.analyser.connect(context.destination);
-
-        // 0 -> 1
-        // this.analyser.smoothingTimeConstant = 0.7
-
-        this.ctx = ctx
     }
 
-    public change(options: VisualizerOptions): void {
+    // TODO: options must be stored and not directly applied
+    // TODO: remove bufferlength calculation from init method
+    // TODO: re-enable 2 methods in apply resolution
+
+    public change = (options: VisualizerOptions): void => {
         this.applyOptions(options)
     }
 
@@ -112,9 +109,12 @@ export class Visualizer {
 
     private applyResolution = (resolution: FftSize) => {
         this.resolution = resolution
-        this.analyser.fftSize = resolution.valueOf()
 
-        this.bufferLength = this.analyser.frequencyBinCount; // always half of the fft size
+        // TODO !!!
+        // this.analyser.fftSize = resolution.valueOf()
+
+        // TODO !!!
+        // this.bufferLength = this.analyser.frequencyBinCount; // always half of the fft size
 
         // Unsigned integer, half of fftSize (so in this case, bufferLength = 8192)
         // Equates to number of data values you have to play with for the visualization
@@ -132,6 +132,7 @@ export class Visualizer {
     }
 
     public start = () => {
+        this.init()
         if (this.animationFrameHandle === 0)
             this.renderFrame()
     }
@@ -161,16 +162,17 @@ export class Visualizer {
     }
 
     private renderFrequency = (width: number, height: number) => {
-        if (this.dataArray) {
+        if (this.dataArray && this.analyser) {
             const numBars = this.bufferLength / 2
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
             this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
+
+            // Example with float:
+            // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
+
             // Results in a normalized array of values between 0 and 255
             // Before this step, dataArray's values are all zeros (but with length of 8192)
-
-            // use this for time based analysis
-            // this.analyser.getByteTimeDomainData(this.dataArray); // Copies the frequency data into dataArray
 
             const rowHeight = height / 256
 
@@ -191,7 +193,7 @@ export class Visualizer {
     }
 
     private renderTime = (width: number, height: number) => {
-        if (this.dataArray) {
+        if (this.dataArray && this.analyser) {
             const numBars = this.bufferLength
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
             this.analyser.getByteTimeDomainData(this.dataArray);

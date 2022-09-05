@@ -35,14 +35,31 @@ const timeOptions: VisualizerOptions = {
     barDistance: 0,
 }
 
+let fileList: FileList | null
+let fileIndex = 0
+
 file.onchange = () => {
-    const files = file.files;
-    if (files) {
-        audio.src = URL.createObjectURL(files[0]); // Creates a DOMString containing the specified File object
-        const name = files[0].name
-        title.innerText = `${name}` // Sets <h3> to the name of the file
-        void audio.play()
+    fileList = file.files;
+    fileIndex = 0
+    playNext()
+}
+
+audio.onended = () => {
+    playNext()
+}
+
+const playNext = () => {
+    if (fileList) {
+        play(fileList[fileIndex])
+        fileIndex = fileIndex + 1 % fileList.length
     }
+}
+
+const play = (file: File) => {
+    audio.src = URL.createObjectURL(file); // Creates a DOMString containing the specified File object
+    const name = file.name
+    title.innerText = `${name}` // Sets <h3> to the name of the file
+    void audio.play()
 }
 
 const visualizer = new Visualizer(audio, visualizerTarget, frequencyOptions)
