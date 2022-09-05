@@ -1,3 +1,9 @@
+export type VisualizerOptions = {
+    stopOnPause?: boolean,
+    clearOnStop?: boolean,
+    falloff?: number
+}
+
 export class Visualizer {
 
     private readonly ctx: CanvasRenderingContext2D
@@ -7,8 +13,20 @@ export class Visualizer {
     private readonly dataArray: Uint8Array
     // private readonly barWidth: number
     private readonly bufferLength: number
+    private animationFrameHandle = 0
 
-    constructor(audio: HTMLAudioElement, ctx: CanvasRenderingContext2D) {
+    private stopOnPause = false
+    private clearOnStop = false
+    private falloff = .2
+
+    constructor(audio: HTMLAudioElement, ctx: CanvasRenderingContext2D, options?: VisualizerOptions) {
+
+        if (options) {
+            if (options.stopOnPause !== undefined) this.stopOnPause = options.stopOnPause
+            if (options.clearOnStop !== undefined) this.clearOnStop = options.clearOnStop
+            if (options.falloff !== undefined) this.falloff = options.falloff
+        }
+
         // (Interface) Audio-processing graph
         const context = new AudioContext();
 
@@ -56,13 +74,24 @@ export class Visualizer {
     }
 
     public start = () => {
-        this.renderFrame()
+        if (this.animationFrameHandle === 0)
+            this.renderFrame()
+    }
+
+    public stop = () => {
+        if (this.stopOnPause && this.animationFrameHandle !== 0) {
+            cancelAnimationFrame(this.animationFrameHandle)
+            this.animationFrameHandle = 0
+            if (this.clearOnStop)
+                this.clearCanvas(1)
+        }
     }
 
     private renderFrame = () => {
-        requestAnimationFrame(this.renderFrame); // Takes callback function to invoke before rendering
+        this.animationFrameHandle = requestAnimationFrame(this.renderFrame); // Takes callback function to invoke before rendering
         const WIDTH = this.ctx.canvas.width
         const HEIGHT = this.ctx.canvas.height
+
         const barWidth = (WIDTH / this.bufferLength * 2);
 
         let barHeight;
@@ -75,8 +104,7 @@ export class Visualizer {
         // use this for time based analysis
         // this.analyser.getByteTimeDomainData(this.dataArray); // Copies the frequency data into dataArray
 
-        this.ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Clears canvas before rendering bars (black with opacity 0.2)
-        this.ctx.fillRect(0, 0, WIDTH, HEIGHT); // Fade effect, set opacity to 1 for sharper rendering of bars
+        this.clearCanvas(this.falloff)
 
         let bars = this.bufferLength / 2 // Set total number of bars you want per frame
         const rowHeight = HEIGHT / 256
@@ -95,6 +123,14 @@ export class Visualizer {
             // Gives 10px space between each bar
             x += barWidth
         }
+    }
+
+    private clearCanvas(alpha: number) {
+        const WIDTH = this.ctx.canvas.width
+        const HEIGHT = this.ctx.canvas.height
+        this.ctx.fillStyle = `rgba(0,0,0,${alpha.toString()})`; // Clears canvas before rendering bars (black with opacity 0.2)
+        // this.ctx.fillStyle = 'rgba(0,0,0,1)'; // Clears canvas before rendering bars (black with opacity 0.2)
+        this.ctx.fillRect(0, 0, WIDTH, HEIGHT); // Fade effect, set opacity to 1 for sharper rendering of bars
     }
 
     private getColor(_: number): [number, number, number] {
