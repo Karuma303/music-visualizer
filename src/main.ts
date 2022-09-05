@@ -7,8 +7,12 @@ const main = document.getElementById("main") as HTMLElement;
 const title = document.getElementById('name')
 const audio = document.getElementById("audio") as HTMLAudioElement;
 
+// NEXT
+// - [ ] visualizer should stop when audio is stopped
+// - [ ] show time domain
+
 const resize = () => {
-    if(canvas.parentNode) {
+    if (canvas.parentNode) {
         const rect = (canvas.parentNode as HTMLElement).getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
@@ -16,11 +20,13 @@ const resize = () => {
 }
 
 if (canvas) {
-    if(main) {
+    if (main) {
         window.onresize = resize
         resize()
     }
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    const visualizer = new Visualizer(audio, ctx)
+    visualizer.start()
     if (file) file.onchange = () => {
         const files = file.files; // FileList containing File objects selected by the user (DOM File API)
         if (files) {
@@ -29,8 +35,6 @@ if (canvas) {
                 const name = files[0].name
                 title.innerText = `${name}` // Sets <h3> to the name of the file
             }
-            const visualizer = new Visualizer(audio, ctx)
-            visualizer.start()
             audio.play()
         }
     }
