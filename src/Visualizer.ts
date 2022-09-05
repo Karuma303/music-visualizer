@@ -1,11 +1,29 @@
 export type VisualizerOptions = {
     stopOnPause?: boolean,
     clearOnStop?: boolean,
-    falloff?: number
+    falloff?: number,
+    displayType?: DisplayType,
+    resolution?: FftSize,
+    barDistance?: number,
 }
 
 export enum DisplayType {
-    Frequency, Time
+    Frequency,
+    Time
+}
+
+export enum FftSize {
+    Size32 = 32,
+    Size64 = 64,
+    Size128 = 128,
+    Size256 = 256,
+    Size512 = 512,
+    Size1024 = 1024,
+    Size2048 = 2048,
+    Size4096 = 4096,
+    Size8192 = 8192,
+    Size16384 = 16384,
+    Size32768 = 32768,
 }
 
 export class Visualizer {
@@ -14,24 +32,19 @@ export class Visualizer {
     // private readonly WIDTH: number
     // private readonly HEIGHT: number
     private readonly analyser: AnalyserNode
-    private readonly dataArray: Uint8Array
+    private dataArray: Uint8Array | null = null
     // private readonly barWidth: number
-    private readonly bufferLength: number
+    private bufferLength: number = 0
     private animationFrameHandle = 0
 
     private stopOnPause = false
     private clearOnStop = false
     private falloff = .2
-    private barDistance = 0
+    private barDistance = 10
     private displayType = DisplayType.Time
+    private resolution: FftSize = FftSize.Size256
 
     constructor(audio: HTMLAudioElement, ctx: CanvasRenderingContext2D, options?: VisualizerOptions) {
-
-        if (options) {
-            if (options.stopOnPause !== undefined) this.stopOnPause = options.stopOnPause
-            if (options.clearOnStop !== undefined) this.clearOnStop = options.clearOnStop
-            if (options.falloff !== undefined) this.falloff = options.falloff
-        }
 
         // (Interface) Audio-processing graph
         const context = new AudioContext();
@@ -51,8 +64,14 @@ export class Visualizer {
             fftSize: 512, // default: 2048 [Best for freq: 128, Best for time: 512]
             minDecibels: -90, // default: -100
             maxDecibels: -10, // default: -30
-            smoothingTimeConstant: .8 // default: .8
+            smoothingTimeConstant: .8 // default: .8 (0 -> 1)
         })
+
+        if (options) {
+            this.applyOptions(options)
+        }
+        if (!this.dataArray) this.applyResolution(FftSize.Size256)
+
         // this.analyser = context.createAnalyser(); // Create an analyser for the audio context
 
         // Connects the audio context source to the analyser
@@ -63,7 +82,30 @@ export class Visualizer {
         this.analyser.connect(context.destination);
 
         // 0 -> 1
-        this.analyser.smoothingTimeConstant = 0.7
+        // this.analyser.smoothingTimeConstant = 0.7
+
+        this.ctx = ctx
+    }
+
+    public change(options: VisualizerOptions): void {
+        this.applyOptions(options)
+    }
+
+    private applyOptions(options: VisualizerOptions) {
+        if (options.stopOnPause !== undefined) this.stopOnPause = options.stopOnPause
+        if (options.clearOnStop !== undefined) this.clearOnStop = options.clearOnStop
+        if (options.falloff !== undefined) this.falloff = options.falloff
+        if (options.displayType !== undefined) this.displayType = options.displayType
+        if (options.barDistance !== undefined) {
+            console.log('bar distance set to ' + options.barDistance)
+            this.barDistance = options.barDistance
+        }
+        if (options.resolution && options.resolution !== this.resolution) this.applyResolution(options.resolution)
+    }
+
+    private applyResolution = (resolution: FftSize) => {
+        this.resolution = resolution
+        this.analyser.fftSize = resolution.valueOf()
 
         this.bufferLength = this.analyser.frequencyBinCount; // always half of the fft size
 
@@ -75,8 +117,6 @@ export class Visualizer {
 
         this.dataArray = new Uint8Array(this.bufferLength); // Converts to 8-bit unsigned integer array
 
-
-        this.ctx = ctx
     }
 
     public start = () => {
@@ -109,51 +149,54 @@ export class Visualizer {
     }
 
     private renderFrequency = (width: number, height: number) => {
-        const numBars = this.bufferLength / 2
-        const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
+        if (this.dataArray) {
+            const numBars = this.bufferLength / 2
+            const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
-        this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
-        // Results in a normalized array of values between 0 and 255
-        // Before this step, dataArray's values are all zeros (but with length of 8192)
+            this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
+            // Results in a normalized array of values between 0 and 255
+            // Before this step, dataArray's values are all zeros (but with length of 8192)
 
-        // use this for time based analysis
-        // this.analyser.getByteTimeDomainData(this.dataArray); // Copies the frequency data into dataArray
+            // use this for time based analysis
+            // this.analyser.getByteTimeDomainData(this.dataArray); // Copies the frequency data into dataArray
 
-        const rowHeight = height / 256
+            const rowHeight = height / 256
 
-        let barHeight;
-        for (let i = 0; i < numBars; i++) {
-            const x = i * (barWidth + this.barDistance)
-            barHeight = this.dataArray[i] * rowHeight;
+            let barHeight;
+            for (let i = 0; i < numBars; i++) {
+                const x = i * (barWidth + this.barDistance)
+                barHeight = this.dataArray[i] * rowHeight;
 
-            // for float based values (min/max db taken into account)
-            // barHeight = (this.dataArray[i] + 90) / 80 * this.HEIGHT;
+                // for float based values (min/max db taken into account)
+                // barHeight = (this.dataArray[i] + 90) / 80 * this.HEIGHT;
 
-            let [r, g, b] = this.getColor(this.dataArray[i])
+                let [r, g, b] = this.getColor(this.dataArray[i])
 
-            this.ctx.fillStyle = `rgb(${r},${g},${b})`;
-            this.ctx.fillRect(x, (height - barHeight), barWidth, barHeight);
+                this.ctx.fillStyle = `rgb(${r},${g},${b})`;
+                this.ctx.fillRect(x, (height - barHeight), barWidth, barHeight);
+            }
         }
     }
 
     private renderTime = (width: number, height: number) => {
-        console.log(width, height)
-        const numBars = this.bufferLength
-        const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
-        this.analyser.getByteTimeDomainData(this.dataArray);
-        const rowHeight = height / 256
-        let barHeight;
-        for (let i = 0; i < numBars; i++) {
-            const x = i * (barWidth + this.barDistance)
-            barHeight = this.dataArray[i] * rowHeight;
+        if (this.dataArray) {
+            const numBars = this.bufferLength
+            const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
+            this.analyser.getByteTimeDomainData(this.dataArray);
+            const rowHeight = height / 256
+            let barHeight;
+            for (let i = 0; i < numBars; i++) {
+                const x = i * (barWidth + this.barDistance)
+                barHeight = this.dataArray[i] * rowHeight;
 
-            // for float based values (min/max db taken into account)
-            // barHeight = (this.dataArray[i] + 90) / 80 * this.HEIGHT;
+                // for float based values (min/max db taken into account)
+                // barHeight = (this.dataArray[i] + 90) / 80 * this.HEIGHT;
 
-            let [r, g, b] = this.getColor(this.dataArray[i])
+                let [r, g, b] = this.getColor(this.dataArray[i])
 
-            this.ctx.fillStyle = `rgb(${r},${g},${b})`;
-            this.ctx.fillRect(x, (height - barHeight), barWidth, rowHeight);
+                this.ctx.fillStyle = `rgb(${r},${g},${b})`;
+                this.ctx.fillRect(x, (height - barHeight), barWidth, rowHeight);
+            }
         }
     }
 
@@ -166,7 +209,7 @@ export class Visualizer {
     }
 
     private getColor(_: number): [number, number, number] {
-        return [146, 222, 107]
+        return [255, 255, 77]
         // if (peak > 210) return [250, 0, 255] // pink
         // else if (peak > 200) return [250, 255, 0] // yellow
         // else if (peak > 190) return [204, 255, 0] // yellow/green
