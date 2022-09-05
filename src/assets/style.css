@@ -46,10 +46,6 @@ footer {
     color: transparent;
 }
 
-#canvas {
-    position: absolute;
-}
-
 audio {
     width: 100%;
 }

@@ -13,6 +13,7 @@ const visualizerTarget = document.getElementById('visualizer') as HTMLElement
 // - [ ] make gap between bars configurable
 // - [ ] Round everything to integer positions (and dimensions)
 // - [ ] make smoothing time constant configurable
+// - [ ] Clean up CSS
 
 // frequency fft - shows bars
 const frequencyOptions: VisualizerOptions = {

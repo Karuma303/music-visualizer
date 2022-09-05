@@ -13,6 +13,7 @@ export class CanvasController {
     private createCanvas = (container: HTMLElement): HTMLCanvasElement => {
         const c: HTMLCanvasElement = document.createElement("canvas")
         c.id = 'canvas'
+        c.style.position = 'absolute'
         container.appendChild(c)
         return c
     }
