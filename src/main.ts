@@ -8,7 +8,11 @@ const title = document.getElementById('name')
 const audio = document.getElementById("audio") as HTMLAudioElement;
 
 // NEXT
-// - [ ] show time domain
+// - [ ] make switch between time domain and frequency
+// - [ ] make color configurable
+// - [ ] make number of bars configurable
+// - [ ] make gap between bars configurable
+// - [ ] make everything configurable per domain
 
 const resize = () => {
     if (canvas.parentNode) {
@@ -32,7 +36,8 @@ if (canvas) {
         visualizer.stop()
     }
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-    const visualizer = new Visualizer(audio, ctx, {stopOnPause: false, clearOnStop: false, falloff: .2})
+    // const visualizer = new Visualizer(audio, ctx, {stopOnPause: true, clearOnStop: false, falloff: .2})
+    const visualizer = new Visualizer(audio, ctx, {stopOnPause: true, clearOnStop: false, falloff: 1})
     // visualizer.start()
     if (file) file.onchange = () => {
         const files = file.files; // FileList containing File objects selected by the user (DOM File API)
@@ -42,6 +47,7 @@ if (canvas) {
                 const name = files[0].name
                 title.innerText = `${name}` // Sets <h3> to the name of the file
             }
+            resize()
             audio.play()
         }
     }
