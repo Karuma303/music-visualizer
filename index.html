@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-<!--    <link rel="icon" type="image/svg+xml" href="/vite.svg" />-->
+<head>
+    <meta charset="UTF-8"/>
+    <!--    <link rel="icon" type="image/svg+xml" href="favicon.svg" sizes="any">-->
+    <!--    <link rel="icon" href="/favicon.png" type="image/png">-->
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="../../style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="src/assets/style.css">
     <title>Music Visualizer</title>
-    <script src="src/script.js"></script> <!-- TODO: remove -->
-  </head>
+</head>
 
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-    <input type="file" id="file-input" accept="audio/*,video/*,image/*" />
-    <canvas id="canvas"></canvas>
-    <h3 id="name"></h3>
-    <audio id="audio" controls></audio>
-    <div id="background"></div>
-  </body>
+<body>
+<script type="module" src="src/main.ts"></script>
+<div id="container">
+    <header>
+        <input type="file" id="file-input" accept="audio/*,video/*,image/*"/>
+        <span id="name"></span>
+        <div>
+            <button>Frequency Domain</button>
+            <button>Time Domain</button>
+        </div>
+    </header>
+    <main id="main">
+        <div id="vis-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        <!-- uncomment to have some horizontal bars -->
+        <!-- note that this implementation does not perfectly math to the bottom of the visualizer! -->
+         <div id="background"></div>
+    </main>
+    <footer>
+        <audio id="audio" controls></audio>
+    </footer>
+</div>
+
+</body>
 </html>
