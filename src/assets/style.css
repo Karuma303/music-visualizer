@@ -28,7 +28,7 @@ main {
     padding: 20px;
 }
 
-#vis-container {
+#visualizer {
     outline: 2px solid #154183;
     outline-offset: 5px;
     width: 100%;

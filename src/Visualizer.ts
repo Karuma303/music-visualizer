@@ -1,3 +1,5 @@
+import {CanvasController} from "./CanvasController";
+
 export type VisualizerOptions = {
     stopOnPause?: boolean,
     clearOnStop?: boolean,
@@ -43,8 +45,13 @@ export class Visualizer {
     private barDistance = 10
     private displayType = DisplayType.Time
     private resolution: FftSize = FftSize.Size256
+    private canvasController: CanvasController
 
-    constructor(audio: HTMLAudioElement, ctx: CanvasRenderingContext2D, options?: VisualizerOptions) {
+    constructor(audio: HTMLAudioElement, container: HTMLElement, options?: VisualizerOptions) {
+        this.canvasController = new CanvasController(container)
+
+        this.attachAudioListener(audio)
+        const ctx = this.canvasController.canvas.getContext("2d") as CanvasRenderingContext2D;
 
         // (Interface) Audio-processing graph
         const context = new AudioContext();
@@ -117,6 +124,11 @@ export class Visualizer {
 
         this.dataArray = new Uint8Array(this.bufferLength); // Converts to 8-bit unsigned integer array
 
+    }
+
+    private attachAudioListener = (audio: HTMLAudioElement) => {
+        audio.onplay = () => this.start()
+        audio.onpause = () => this.stop()
     }
 
     public start = () => {
