@@ -59,6 +59,8 @@ export class Visualizer {
             this.applyOptions(options)
 
         this.attachAudioListener(audio)
+
+        // TODO: the assignment of options to the internal properties and later to the analyzer node is a mess!
     }
 
     public init = () => {
@@ -74,8 +76,7 @@ export class Visualizer {
             maxDecibels: -10, // default: -30
             smoothingTimeConstant: .8 // default: .8 (0 -> 1)
         })
-        // TODO: remove
-        this.bufferLength = this.analyser.frequencyBinCount
+        this.applyResolution(512) // TODO: remove
 
         if (!this.dataArray) this.applyResolution(FftSize.Size256)
 
@@ -101,17 +102,21 @@ export class Visualizer {
         if (options.falloff !== undefined) this.falloff = options.falloff
         if (options.displayType !== undefined) this.displayType = options.displayType
         if (options.barDistance !== undefined) {
-            console.log('bar distance set to ' + options.barDistance)
             this.barDistance = options.barDistance
         }
-        if (options.resolution && options.resolution !== this.resolution) this.applyResolution(options.resolution)
+        if (options.resolution && options.resolution !== this.resolution) {
+            this.applyResolution(options.resolution)
+        }
     }
 
     private applyResolution = (resolution: FftSize) => {
         this.resolution = resolution
+        if (this.analyser) {
+            this.analyser.fftSize = resolution.valueOf()
+            this.bufferLength = this.analyser.frequencyBinCount
+        }
 
         // TODO !!!
-        // this.analyser.fftSize = resolution.valueOf()
 
         // TODO !!!
         // this.bufferLength = this.analyser.frequencyBinCount; // always half of the fft size
@@ -163,7 +168,8 @@ export class Visualizer {
 
     private renderFrequency = (width: number, height: number) => {
         if (this.dataArray && this.analyser) {
-            const numBars = this.bufferLength / 2
+            // const numBars = this.bufferLength / 2
+            const numBars = this.bufferLength
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
             this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray

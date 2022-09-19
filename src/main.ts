@@ -21,7 +21,7 @@ const frequencyOptions: VisualizerOptions = {
     stopOnPause: false,
     clearOnStop: false,
     falloff: .6,
-    resolution: FftSize.Size256,
+    resolution: FftSize.Size4096,
     barDistance: 4,
 }
 
