@@ -43,22 +43,25 @@ export class Visualizer {
 
     private stopOnPause = false
     private clearOnStop = false
-    private falloff = .2
-    private barDistance = 10
+    private falloff = 0.2
+    private barDistance = 0.1
     private displayType = DisplayType.Time
     private resolution: FftSize = FftSize.Size256
     private canvasController: CanvasController
     private audio: HTMLAudioElement;
 
-    constructor(audio: HTMLAudioElement, container: HTMLElement, options?: VisualizerOptions) {
+    private initialized: boolean = false
+
+
+    constructor(audio: HTMLAudioElement, container: HTMLElement, options: VisualizerOptions) {
         this.audio = audio
+        this.attachAudioListener(audio)
         this.canvasController = new CanvasController(container)
         this.ctx = this.canvasController.canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        if (options)
-            this.applyOptions(options)
+        this.applyOptions(options)
 
-        this.attachAudioListener(audio)
+        this.resolution = FftSize.Size1024
 
         // TODO: the assignment of options to the internal properties and later to the analyzer node is a mess!
     }
@@ -71,14 +74,14 @@ export class Visualizer {
         const src = context.createMediaElementSource(this.audio);
 
         this.analyser = new AnalyserNode(context, {
-            fftSize: 512, // default: 2048 [Best for freq: 128, Best for time: 512]
-            minDecibels: -90, // default: -100
+            fftSize: this.resolution, // default: 2048 [Best for freq: 128, Best for time: 512]
+            minDecibels: -100, // default: -100
             maxDecibels: -10, // default: -30
-            smoothingTimeConstant: .8 // default: .8 (0 -> 1)
+            smoothingTimeConstant: .7, // default: .8 (0 -> 1),
         })
-        this.applyResolution(512) // TODO: remove
+        // this.applyResolution(128) // TODO: remove
 
-        if (!this.dataArray) this.applyResolution(FftSize.Size256)
+        if (!this.dataArray) this.applyResolution(FftSize.Size1024)
 
         // Connects the audio context source to the analyser
         src.connect(this.analyser);
@@ -86,6 +89,9 @@ export class Visualizer {
         // End destination of an audio graph in a given context
         // Sends sound to the speakers or headphones
         this.analyser.connect(context.destination);
+        this.applyResolution(this.resolution)
+
+        this.initialized = true
     }
 
     // TODO: options must be stored and not directly applied
@@ -97,6 +103,7 @@ export class Visualizer {
     }
 
     private applyOptions(options: VisualizerOptions) {
+        console.log(options);
         if (options.stopOnPause !== undefined) this.stopOnPause = options.stopOnPause
         if (options.clearOnStop !== undefined) this.clearOnStop = options.clearOnStop
         if (options.falloff !== undefined) this.falloff = options.falloff
@@ -104,12 +111,14 @@ export class Visualizer {
         if (options.barDistance !== undefined) {
             this.barDistance = options.barDistance
         }
-        if (options.resolution && options.resolution !== this.resolution) {
+        // if (options.resolution && options.resolution !== this.resolution) {
+        if (options.resolution)
             this.applyResolution(options.resolution)
-        }
+        // }
     }
 
     private applyResolution = (resolution: FftSize) => {
+        console.log('apply resolution', resolution);
         this.resolution = resolution
         if (this.analyser) {
             this.analyser.fftSize = resolution.valueOf()
@@ -136,13 +145,18 @@ export class Visualizer {
         audio.onpause = () => this.stop()
     }
 
+    // while seeking, the audioelement send stop/start commands
+
     public start = () => {
-        this.init()
+        if(!this.initialized) this.init()
+        console.log('start')
+        //this.init()
         if (this.animationFrameHandle === 0)
             this.renderFrame()
     }
 
     public stop = () => {
+        console.log('stop')
         if (this.stopOnPause && this.animationFrameHandle !== 0) {
             cancelAnimationFrame(this.animationFrameHandle)
             this.animationFrameHandle = 0
@@ -158,7 +172,6 @@ export class Visualizer {
         const width = this.ctx.canvas.width
         const height = this.ctx.canvas.height
 
-
         if (this.displayType === DisplayType.Frequency)
             this.renderFrequency(width, height)
         else if (this.displayType === DisplayType.Time)
@@ -169,7 +182,7 @@ export class Visualizer {
     private renderFrequency = (width: number, height: number) => {
         if (this.dataArray && this.analyser) {
             // const numBars = this.bufferLength / 2
-            const numBars = this.bufferLength
+            const numBars = this.bufferLength / 2
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
             this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
@@ -188,7 +201,7 @@ export class Visualizer {
                 barHeight = this.dataArray[i] * rowHeight;
 
                 // for float based values (min/max db taken into account)
-                // barHeight = (this.dataArray[i] + 90) / 80 * this.HEIGHT;
+                // barHeight = (this.dataArray[i] + 90) / 80 * 200;
 
                 let [r, g, b] = this.getColor(this.dataArray[i])
 
@@ -200,6 +213,7 @@ export class Visualizer {
 
     private renderTime = (width: number, height: number) => {
         if (this.dataArray && this.analyser) {
+        console.log('render frame', this.bufferLength)
             const numBars = this.bufferLength
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
             this.analyser.getByteTimeDomainData(this.dataArray);

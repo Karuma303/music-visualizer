@@ -21,8 +21,8 @@ const frequencyOptions: VisualizerOptions = {
     stopOnPause: false,
     clearOnStop: false,
     falloff: .6,
-    resolution: FftSize.Size4096,
-    barDistance: 4,
+    resolution: FftSize.Size512,
+    barDistance: 0,
 }
 
 // time domain fft - shows waves
@@ -30,7 +30,7 @@ const timeOptions: VisualizerOptions = {
     displayType: DisplayType.Time,
     stopOnPause: false,
     clearOnStop: false,
-    falloff: 1,
+    falloff: 2,
     resolution: FftSize.Size1024,
     barDistance: 0,
 }
