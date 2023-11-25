@@ -75,9 +75,9 @@ export class Visualizer {
 
         this.analyser = new AnalyserNode(context, {
             fftSize: this.resolution, // default: 2048 [Best for freq: 128, Best for time: 512]
-            minDecibels: -100, // default: -100
+            minDecibels: -80, // default: -100
             maxDecibels: -10, // default: -30
-            smoothingTimeConstant: .7, // default: .8 (0 -> 1),
+            smoothingTimeConstant: .8, // default: .8 (0 -> 1),
         })
         // this.applyResolution(128) // TODO: remove
 
@@ -182,7 +182,7 @@ export class Visualizer {
     private renderFrequency = (width: number, height: number) => {
         if (this.dataArray && this.analyser) {
             // const numBars = this.bufferLength / 2
-            const numBars = this.bufferLength / 2.5
+            const numBars = this.bufferLength / 2
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
             this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
@@ -193,12 +193,12 @@ export class Visualizer {
             // Results in a normalized array of values between 0 and 255
             // Before this step, dataArray's values are all zeros (but with length of 8192)
 
-            const rowHeight = height / 256  / 8
+            const rowHeight = height / 256  / 3
 
             let barHeight;
             for (let i = 0; i < numBars; i++) {
                 const x = i * (barWidth + this.barDistance)
-                barHeight = (this.dataArray[i] * rowHeight * Math.log2(i*2 +5));
+                barHeight = (this.dataArray[i] * rowHeight * Math.log2(i*0.01 + 5)); // the factor inside the log statement must be dependent on buffersize!
 
                 // for float based values (min/max db taken into account)
                 // barHeight = (this.dataArray[i] + 90) / 80 * 200;
