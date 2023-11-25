@@ -182,7 +182,7 @@ export class Visualizer {
     private renderFrequency = (width: number, height: number) => {
         if (this.dataArray && this.analyser) {
             // const numBars = this.bufferLength / 2
-            const numBars = this.bufferLength / 2
+            const numBars = this.bufferLength / 2.5
             const barWidth = (width - (numBars - 1) * this.barDistance) / numBars
 
             this.analyser.getByteFrequencyData(this.dataArray); // Copies the frequency data into dataArray
@@ -193,12 +193,12 @@ export class Visualizer {
             // Results in a normalized array of values between 0 and 255
             // Before this step, dataArray's values are all zeros (but with length of 8192)
 
-            const rowHeight = height / 256
+            const rowHeight = height / 256  / 8
 
             let barHeight;
             for (let i = 0; i < numBars; i++) {
                 const x = i * (barWidth + this.barDistance)
-                barHeight = this.dataArray[i] * rowHeight;
+                barHeight = (this.dataArray[i] * rowHeight * Math.log2(i*2 +5));
 
                 // for float based values (min/max db taken into account)
                 // barHeight = (this.dataArray[i] + 90) / 80 * 200;
